@@ -1,108 +1,115 @@
 module Main exposing (main)
 
 import Browser
-import Html exposing (Html, a, footer, h1, header, img, li, node, p, section, text, ul)
-import Html.Attributes exposing (class, href, src, target)
+import Html exposing (..)
+import Html.Attributes exposing (id, class, value, type_, placeholder)
+import Html.Events exposing (onClick, onInput)
+import Markdown
+import Time
+import Task
 
 
-main : Program () Model Msg
-main =
-    Browser.element
-        { init = init
-        , update = update
-        , view = view
-        , subscriptions = \_ -> Sub.none
-        }
-
-
-
--- MODEL
-
-
+-- model
 type alias Model =
-    { userState : String
+    { articleList : List Article
+    , editArticle : Article
     }
 
 
-init : () -> ( Model, Cmd Msg )
-init _ =
-    ( Model ""
-    , Cmd.none
-    )
+type alias Article =
+    { title : String
+    , markdown : String
+    , lastupdated : String
+    , tags : List String
+    }
 
 
+initialModel : Model
+initialModel =
+    { articleList = 
+        [ { lastupdated = "", title = "hoge", markdown = "", tags = []}
+        , { lastupdated = "", title = "foo", markdown = "", tags = []}
+        , { lastupdated = "", title = "bar", markdown = "", tags = []}
+        ]
+    , editArticle = { lastupdated = "", title = "", markdown = "", tags = [] }
+    }
 
--- UPDATE
 
-
+-- msg
 type Msg
-    = NoOp
+    = ChangeArticle String
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+--update
+update : Msg -> Model -> Model
 update msg model =
-    case msg of
-        NoOp ->
-            ( model, Cmd.none )
+    case msg of 
+        ChangeArticle str ->
+            { model | editArticle = ( Article model.editArticle.title str "20190727" model.editArticle.tags )}
 
 
-
--- VIEW
-
-
+-- view
 view : Model -> Html Msg
 view model =
-    node "body"
-        []
+   div [ class "container" ]
         [ siteHeader
-        , node "main"
-            []
-            [ section []
-                [ h1 [] [ text "Elm official..." ]
-                , ul []
-                    [ li []
-                        [ a [ href "https://elm-lang.org", target "_blank" ]
-                            [ text "Elm - A delightful language for reliable webapps" ]
-                        ]
-                    , li []
-                        [ a [ href "https://guide.elm-lang.org", target "_blank" ]
-                            [ text "Introduction · An Introduction to Elm" ]
-                        ]
-                    ]
-                ]
-            , section []
-                [ h1 [] [ text "Community in Japan" ]
-                , ul []
-                    [ li []
-                        [ a [ href "https://elm-lang.jp", target "_blank" ]
-                            [ text "Elm-jp" ]
-                        ]
-                    , li []
-                        [ a [ href "https://guide.elm-lang.jp", target "_blank" ]
-                            [ text "はじめに · An Introduction to Elm" ]
-                        ]
-                    , li []
-                        [ a [ href "http://jinjor-labo.hatenablog.com/entry/2019/02/26/112019", target "_blank" ]
-                            [ text "『基礎からわかる Elm』（Author's post）" ]
-                        ]
-                    ]
-                ]
-
-            -- , img [ src "./assets/images/Elm_logo.png" ] []
-            ]
+        , articleList model
+        , markdown model
         , siteFooter
         ]
 
 
+articleList : Model -> Html Msg
+articleList model = 
+    div [ id "ArticleList"]
+        [ ul [] ( List.map articleItem model.articleList )]
+
+
+articleItem : Article -> Html Msg
+articleItem article = 
+    li [] [ text article.title ]
+
+
+-- Markdown
+markdown : Model -> Html Msg
+markdown model = 
+    section [ id "markdown" , class "markdown" ] 
+        [ editor model
+        , preview model
+        ]
+
+
+editor : Model -> Html Msg
+editor model = 
+    div [] 
+        [ textarea [ class "editor" , value model.editArticle.markdown , onInput ChangeArticle ] [] 
+        ]
+
+
+preview : Model -> Html Msg
+preview model = 
+    div [ id "markdown-preview" ]
+        <| Markdown.toHtml Nothing model.editArticle.markdown
+
+
 siteHeader : Html Msg
 siteHeader =
-    header [ class "site-header" ]
-        [ h1 [] [ text "elm-stafighter is taking off." ]
+    header [] 
+        [ p [] [ text "Hello world!" ]
         ]
 
 
 siteFooter : Html Msg
-siteFooter =
-    footer [ class "site-footer" ]
-        [ p [ class "copyright" ] [ text "© 2019 y047aka" ]
-        ]
+siteFooter = 
+    div [] []
+
+
+-- main
+
+main : Program () Model Msg
+main =
+    Browser.sandbox
+        { init = initialModel
+        , view = view
+        , update = update
+        }
